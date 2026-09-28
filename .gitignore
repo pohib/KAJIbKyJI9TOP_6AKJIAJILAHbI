@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+__init__.py
 *.py[cod]
 *$py.class
 
@@ -25,6 +26,8 @@ ENV/
 .coverage
 htmlcov/
 .tox/
+.ruff_cache/
+.mypy_cache/
 
 # Build
 build/
@@ -40,3 +43,5 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+.docker/
+*.tar
