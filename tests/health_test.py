@@ -43,6 +43,7 @@ def test_health_returns_503_when_self_test_fails(client: TestClient, monkeypatch
     assert body["status"] == "degraded"
     assert "calculator_self_test" in body["message"]
 
+
 def test_apply_operation():
     assert apply_operation("+", 2, 3) == 5
     assert apply_operation("*", 4, 5) == 20

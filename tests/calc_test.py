@@ -59,6 +59,7 @@ def test_zero_plus_zero(client: TestClient):
     assert r.status_code == 200
     assert r.json()["result"] == 0
 
+
 @pytest.mark.parametrize("a", [0, 1, -1, 1e10])
 def test_division_by_zero_rejected(client: TestClient, a):
     r = client.post("/calculate", json={"a": a, "b": 0, "operation": "/"})
@@ -70,10 +71,12 @@ def test_zero_divided_by_zero(client: TestClient):
     r = client.post("/calculate", json={"a": 0, "b": 0, "operation": "/"})
     assert r.status_code == 400
 
+
 @pytest.mark.parametrize("bad_op", ["%", "**", "//", "plus", "", " ", None, 1])
 def test_unknown_operation(client: TestClient, bad_op):
     r = client.post("/calculate", json={"a": 1, "b": 2, "operation": bad_op})
     assert r.status_code == 422, r.text
+
 
 @pytest.mark.parametrize(
     "payload",
@@ -85,7 +88,6 @@ def test_unknown_operation(client: TestClient, bad_op):
         {"a": 1, "b": 2},
     ],
 )
-
 def test_payload_rejected(client: TestClient, payload):
     r = client.post("/calculate", json=payload)
     assert r.status_code == 422
@@ -95,6 +97,7 @@ def test_string_numbers_converted_to_float(client: TestClient):
     r = client.post("/calculate", json={"a": "10", "b": "5", "operation": "+"})
     assert r.status_code == 200
     assert r.json()["result"] == 15
+
 
 def test_response_contains_all_operations(client: TestClient):
     r = client.post("/calculate", json={"a": 1, "b": 2, "operation": "+"})

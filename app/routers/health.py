@@ -9,6 +9,7 @@ from app.schemas import HealthResponse
 
 router = APIRouter(tags=["health"])
 
+
 @router.get("/")
 def root() -> dict:
     return {
@@ -17,6 +18,7 @@ def root() -> dict:
         "status": "работает как негор",
         "available_operations": AVAILABLE_OPERATIONS,
     }
+
 
 @router.get(
     "/health",

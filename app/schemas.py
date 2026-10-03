@@ -13,11 +13,7 @@ class CalcRequest(BaseModel):
     b: float = Field(..., description="Второй операнд", examples=[5])
     operation: OperationType = Field(..., description="Операция", examples=["+"])
 
-    model_config = {
-        "json_schema_extra": {
-            "example": {"a": 10, "b": 5, "operation": "+"}
-        }
-    }
+    model_config = {"json_schema_extra": {"example": {"a": 10, "b": 5, "operation": "+"}}}
 
 
 class CalcResponse(BaseModel):

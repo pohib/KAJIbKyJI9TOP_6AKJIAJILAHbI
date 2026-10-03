@@ -9,6 +9,7 @@ APP_DESCRIPTION = "КАЛЬКУЛЯТОР БАКЛАЖАНЫ"
 
 _FALLBACK_VERSION = "0.0.0"
 
+
 def _resolve_version() -> str:
     env_version = os.getenv("APP_VERSION")
     if env_version:
@@ -17,5 +18,6 @@ def _resolve_version() -> str:
         return pkg_version("calcapi")
     except PackageNotFoundError:
         return _FALLBACK_VERSION
+
 
 APP_VERSION: str = _resolve_version()
