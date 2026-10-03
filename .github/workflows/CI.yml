@@ -91,19 +91,18 @@ jobs:
             sleep 1
           done
 
-          echo "--- /health ---"
+          echo "health"
           curl -f http://localhost:8000/health
           echo
 
-          echo "--- / (версия) ---"
+          echo "версия"
           curl -f http://localhost:8000/ | tee /tmp/root.json
           echo
 
-          # Проверяем, что версия совпадает с тегом
           EXPECTED="${{ steps.tag.outputs.new_version }}"
           ACTUAL=$(grep -oE '"version":"[^"]+"' /tmp/root.json | cut -d'"' -f4)
 
-          echo "Ожидали: $EXPECTED / Получили: $ACTUAL"
+          echo "Ожидалось: $EXPECTED  Получено: $ACTUAL"
 
           [ "$EXPECTED" = "$ACTUAL" ] || {
             echo "Версия не совпала"
