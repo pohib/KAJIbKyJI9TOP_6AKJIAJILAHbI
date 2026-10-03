@@ -5,15 +5,48 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-OperationType = Literal["+", "-", "*", "/"]
+OperationType = Literal["+", "-", "*", "/", "sin", "cos"]
 
 
 class CalcRequest(BaseModel):
-    a: float = Field(..., description="Первый операнд", examples=[10])
-    b: float = Field(..., description="Второй операнд", examples=[5])
-    operation: OperationType = Field(..., description="Операция", examples=["+"])
+    operation: OperationType = Field(
+        ...,
+        description=(
+            "Операция. "
+            "Бинарные (+ - * /) требуют оба операнда 'a' и 'b'. "
+            "Унарные (sin, cos) используют только 'a', поле 'b' игнорируется."
+        ),
+        examples=["+", "sin"],
+    )
+    a: float = Field(
+        ...,
+        description=(
+            "Первый операнд. "
+            "Для бинарных операций — левый операнд. "
+            "Для унарных (sin) — единственный аргумент."
+        ),
+        examples=[10],
+    )
+    b: float = Field(
+        ...,
+        description=(
+            "Второй операнд. "
+            "Обязателен для бинарных операций (+ - * /). "
+            "Для унарных операций (sin) можно передать любое значение — "
+            "оно будет проигнорировано."
+        ),
+        examples=[5],
+    )
 
-    model_config = {"json_schema_extra": {"example": {"a": 10, "b": 5, "operation": "+"}}}
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"operation": "+", "a": 10, "b": 5},
+                {"operation": "sin", "a": 0, "b": 0},
+                {"operation": "cos", "a": 0, "b": 0},
+            ]
+        }
+    }
 
 
 class CalcResponse(BaseModel):

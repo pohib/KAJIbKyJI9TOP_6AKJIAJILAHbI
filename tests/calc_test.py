@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -107,3 +109,80 @@ def test_response_contains_all_operations(client: TestClient):
     assert body["a"] == 1
     assert body["b"] == 2
     assert body["operation"] == "+"
+
+
+def test_sin_zero(client: TestClient):
+    r = client.post("/calculate", json={"a": 0, "b": 0, "operation": "sin"})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_sin_pi_over_two(client: TestClient):
+    r = client.post("/calculate", json={"a": math.pi / 2, "b": 0, "operation": "sin"})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(1.0, abs=1e-9)
+
+
+def test_negative_sin(client: TestClient):
+    r = client.post("/calculate", json={"a": -math.pi / 2, "b": 0, "operation": "sin"})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(-1.0, abs=1e-9)
+
+
+def test_cos_zero(client: TestClient):
+    r = client.post("/calculate", json={"operation": "cos", "a": 0, "b": 0})
+    assert r.status_code == 200, r.text
+    assert r.json()["result"] == pytest.approx(1.0, abs=1e-9)
+
+
+def test_cos_pi(client: TestClient):
+    r = client.post("/calculate", json={"operation": "cos", "a": math.pi, "b": 0})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(-1.0, abs=1e-9)
+
+
+def test_cos_pi_over_two(client: TestClient):
+    r = client.post("/calculate", json={"operation": "cos", "a": math.pi / 2, "b": 0})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(0.0, abs=1e-9)
+
+
+@pytest.mark.parametrize(
+    "a, expected",
+    [
+        (0.0, 1.0),
+        (math.pi / 3, 0.5),
+        (math.pi / 2, 0.0),
+        (math.pi, -1.0),
+        (3 * math.pi / 2, 0.0),
+        (2 * math.pi, 1.0),
+    ],
+    ids=["0", "pi/3", "pi/2", "pi", "3pi/2", "2pi"],
+)
+def test_cos_values(client: TestClient, a, expected):
+    r = client.post("/calculate", json={"operation": "cos", "a": a, "b": 0})
+    assert r.status_code == 200
+    assert r.json()["result"] == pytest.approx(expected, abs=1e-9)
+
+
+def test_cos_ignores_b(client: TestClient):
+    r1 = client.post("/calculate", json={"operation": "cos", "a": 0, "b": 0})
+    r2 = client.post("/calculate", json={"operation": "cos", "a": 0, "b": 999})
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.json()["result"] == r2.json()["result"] == pytest.approx(1.0)
+
+
+def test_cos_response_contains_all_operations(client: TestClient):
+    r = client.post("/calculate", json={"operation": "cos", "a": 0, "b": 0})
+    assert r.status_code == 200
+    ops = r.json()["available_operations"]
+    assert "cos" in ops
+    assert "sin" in ops
+    assert "+" in ops
+
+
+def test_trigonometric_identity(client: TestClient):
+    for x in [0.0, math.pi / 4, math.pi / 3, math.pi / 2, math.pi]:
+        s = client.post("/calculate", json={"operation": "sin", "a": x, "b": 0}).json()["result"]
+        c = client.post("/calculate", json={"operation": "cos", "a": x, "b": 0}).json()["result"]
+        assert s**2 + c**2 == pytest.approx(1.0, abs=1e-9), f"identity failed at x={x}"

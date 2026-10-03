@@ -12,12 +12,15 @@ permissions:
 
 jobs:
   test:
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
@@ -39,105 +42,152 @@ jobs:
       - name: Bandit
         run: bandit -r app -c pyproject.toml
 
-  build:
+
+  release:
+    name: Build, tag, publish
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-    outputs:
-      version: ${{ steps.tag.outputs.new_version }}
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Рассчитать версию
+        id: version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dry_run: true
+
+          default_bump: false
+
+          release_branches: main
+          tag_prefix: v
+
+          custom_release_rules: |
+            fix:patch
+            refactor:patch
+            feat:minor
+
+      - name: Показать рассчитанную версию
+        run: |
+          echo "Release type: ${{ steps.version.outputs.release_type }}"
+          echo "Previous tag: ${{ steps.version.outputs.previous_tag }}"
+          echo "New version:  ${{ steps.version.outputs.new_version }}"
+          echo "New tag:      ${{ steps.version.outputs.new_tag }}"
+
+      - name: Проверить необходимость релиза
+        if: steps.version.outputs.new_version == ''
+        run: |
+          echo "Новый релиз не требуется."
+          exit 0
+
       - name: Подготовить имя Docker-образа
+        if: steps.version.outputs.new_version != ''
         run: |
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
           echo "Docker image: ghcr.io/${GITHUB_REPOSITORY,,}"
 
-      - name: Автотег по Conventional Commits
-        id: tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-          release_branches: main
-          tag_prefix: v
-
-      - name: Версия
-        run: |
-          echo "Новая версия: ${{ steps.tag.outputs.new_version }}"
-          echo "Предыдущий тег: ${{ steps.tag.outputs.previous_tag }}"
-
-      - name: Собрать образ
+      - name: Собрать Docker image
+        if: steps.version.outputs.new_version != ''
         run: |
           docker build \
-            --build-arg APP_VERSION=${{ steps.tag.outputs.new_version }} \
-            -t "$IMAGE_NAME:${{ steps.tag.outputs.new_version }}" \
+            --build-arg APP_VERSION=${{ steps.version.outputs.new_version }} \
+            -t "$IMAGE_NAME:${{ steps.version.outputs.new_version }}" \
             -t "$IMAGE_NAME:latest" \
             .
 
       - name: Smoke-тест контейнера
+        if: steps.version.outputs.new_version != ''
         run: |
-          docker run -d --rm -p 8000:8000 --name calcapi \
-            "$IMAGE_NAME:${{ steps.tag.outputs.new_version }}"
+          docker run -d --rm \
+            -p 8000:8000 \
+            --name calcapi \
+            "$IMAGE_NAME:${{ steps.version.outputs.new_version }}"
+
+          echo "Ожидание запуска приложения..."
 
           for i in $(seq 1 15); do
             if curl -sf http://localhost:8000/health >/dev/null; then
               break
             fi
+
+            if [ "$i" -eq 15 ]; then
+              echo "Приложение не запустилось"
+              docker logs calcapi
+              exit 1
+            fi
+
             sleep 1
           done
 
-          echo "health"
+          echo "Health:"
           curl -f http://localhost:8000/health
           echo
 
-          echo "версия"
+          echo "Version:"
           curl -f http://localhost:8000/ | tee /tmp/root.json
           echo
 
-          EXPECTED="${{ steps.tag.outputs.new_version }}"
+          EXPECTED="${{ steps.version.outputs.new_version }}"
           ACTUAL=$(grep -oE '"version":"[^"]+"' /tmp/root.json | cut -d'"' -f4)
 
-          echo "Ожидалось: $EXPECTED  Получено: $ACTUAL"
+          echo "Ожидалось: $EXPECTED"
+          echo "Получено:   $ACTUAL"
 
-          [ "$EXPECTED" = "$ACTUAL" ] || {
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
             echo "Версия не совпала"
+            docker logs calcapi
             exit 1
-          }
+          fi
+
+          echo "Smoke test OK"
 
           docker stop calcapi
 
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Создать Git tag
+        if: steps.version.outputs.new_version != ''
+        id: tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-    steps:
-      - uses: actions/checkout@v4
+          default_bump: false
 
-      - name: Подготовить имя Docker-образа
+          release_branches: main
+          tag_prefix: v
+
+          custom_release_rules: |
+            fix:patch
+            feat:minor
+
+      - name: Показать созданный tag
+        if: steps.tag.outputs.new_tag != ''
         run: |
-          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
-          echo "Docker image: ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "Создан tag: ${{ steps.tag.outputs.new_tag }}"
+          echo "Версия:     ${{ steps.tag.outputs.new_version }}"
+          echo "Предыдущий: ${{ steps.tag.outputs.previous_tag }}"
 
       - name: Логин в GHCR
+        if: steps.version.outputs.new_version != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Пересобрать и запушить
+      - name: Push Docker image
+        if: steps.version.outputs.new_version != ''
         run: |
-          docker build \
-            --build-arg APP_VERSION=${{ needs.build.outputs.version }} \
-            -t "$IMAGE_NAME:${{ needs.build.outputs.version }}" \
-            -t "$IMAGE_NAME:latest" \
-            .
-
-          docker push "$IMAGE_NAME:${{ needs.build.outputs.version }}"
+          docker push "$IMAGE_NAME:${{ steps.version.outputs.new_version }}"
           docker push "$IMAGE_NAME:latest"
+
+          echo "Опубликовано:"
+          echo "$IMAGE_NAME:${{ steps.version.outputs.new_version }}"
+          echo "$IMAGE_NAME:latest"

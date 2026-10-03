@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import operator
 from collections.abc import Callable
 
@@ -8,6 +9,8 @@ OPERATIONS: dict[str, Callable[[float, float], float]] = {
     "-": operator.sub,
     "*": operator.mul,
     "/": operator.truediv,
+    "sin": lambda a, _b: math.sin(a),
+    "cos": lambda a, _b: math.cos(a),
 }
 
 AVAILABLE_OPERATIONS: list[str] = list(OPERATIONS.keys())
@@ -22,6 +25,8 @@ _SELF_TEST_SAMPLES: dict[str, tuple[float, float, float]] = {
     "-": (5.0, 3.0, 2.0),
     "*": (2.0, 3.0, 6.0),
     "/": (6.0, 3.0, 2.0),
+    "sin": (0.0, 0.0, 0.0),
+    "cos": (0.0, 0.0, 1.0),
 }
 
 
@@ -42,7 +47,7 @@ def self_test() -> str:
         if symbol not in OPERATIONS:
             raise RuntimeError(f"Отсутствует операция '{symbol}'")
         got = OPERATIONS[symbol](a, b)
-        if got != expected:
+        if not math.isclose(got, expected, abs_tol=1e-9):
             raise RuntimeError(
                 f"Тест не пройден для '{symbol}': "
                 f"{a} {symbol} {b} = {got}, ожидалось {expected}"
