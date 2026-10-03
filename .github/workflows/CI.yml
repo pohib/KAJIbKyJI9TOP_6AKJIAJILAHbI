@@ -10,12 +10,10 @@ permissions:
   contents: write
   packages: write
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -45,12 +43,19 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     outputs:
       version: ${{ steps.tag.outputs.new_version }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Подготовить имя Docker-образа
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "Docker image: ghcr.io/${GITHUB_REPOSITORY,,}"
 
       - name: Автотег по Conventional Commits
         id: tag
@@ -70,37 +75,55 @@ jobs:
         run: |
           docker build \
             --build-arg APP_VERSION=${{ steps.tag.outputs.new_version }} \
-            -t ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.new_version }} \
-            -t ${{ env.IMAGE_NAME }}:latest \
+            -t "$IMAGE_NAME:${{ steps.tag.outputs.new_version }}" \
+            -t "$IMAGE_NAME:latest" \
             .
 
       - name: Smoke-тест контейнера
         run: |
           docker run -d --rm -p 8000:8000 --name calcapi \
-            ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.new_version }}
+            "$IMAGE_NAME:${{ steps.tag.outputs.new_version }}"
+
           for i in $(seq 1 15); do
-            if curl -sf http://localhost:8000/health >/dev/null; then break; fi
+            if curl -sf http://localhost:8000/health >/dev/null; then
+              break
+            fi
             sleep 1
           done
+
           echo "--- /health ---"
           curl -f http://localhost:8000/health
           echo
+
           echo "--- / (версия) ---"
           curl -f http://localhost:8000/ | tee /tmp/root.json
           echo
+
           # Проверяем, что версия совпадает с тегом
           EXPECTED="${{ steps.tag.outputs.new_version }}"
           ACTUAL=$(grep -oE '"version":"[^"]+"' /tmp/root.json | cut -d'"' -f4)
+
           echo "Ожидали: $EXPECTED / Получили: $ACTUAL"
-          [ "$EXPECTED" = "$ACTUAL" ] || { echo "Версия не совпала"; exit 1; }
+
+          [ "$EXPECTED" = "$ACTUAL" ] || {
+            echo "Версия не совпала"
+            exit 1
+          }
+
           docker stop calcapi
 
   publish:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Подготовить имя Docker-образа
+        run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          echo "Docker image: ghcr.io/${GITHUB_REPOSITORY,,}"
 
       - name: Логин в GHCR
         uses: docker/login-action@v3
@@ -113,8 +136,9 @@ jobs:
         run: |
           docker build \
             --build-arg APP_VERSION=${{ needs.build.outputs.version }} \
-            -t ${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }} \
-            -t ${{ env.IMAGE_NAME }}:latest \
+            -t "$IMAGE_NAME:${{ needs.build.outputs.version }}" \
+            -t "$IMAGE_NAME:latest" \
             .
-          docker push ${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }}
-          docker push ${{ env.IMAGE_NAME }}:latest
+
+          docker push "$IMAGE_NAME:${{ needs.build.outputs.version }}"
+          docker push "$IMAGE_NAME:latest"
