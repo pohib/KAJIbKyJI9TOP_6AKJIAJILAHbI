@@ -30,5 +30,6 @@ build-backend = "setuptools.build_meta"
 include = ["app*"]
 
 [tool.pytest.ini_options]
-python_files = ["test_*.py", "*_test.py"]
+pythonpath = ["."]
 testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
