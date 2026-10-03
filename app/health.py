@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Callable
+
+from collections.abc import Callable
+
 from app.operations import self_test as operations_self_test
 
 

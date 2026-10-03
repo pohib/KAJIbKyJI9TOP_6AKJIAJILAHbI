@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Callable
+from collections.abc import Callable
 
 OPERATIONS: dict[str, Callable[[float, float], float]] = {
     "+": operator.add,
@@ -27,10 +27,10 @@ _SELF_TEST_SAMPLES: dict[str, tuple[float, float, float]] = {
 
 def self_test() -> str:
     missing = set(OPERATIONS) - set(_SELF_TEST_SAMPLES)
-    
+
     if missing:
         raise RuntimeError(f"Нет self-test-примеров для операций: {missing}")
-    
+
     if not OPERATIONS:
         raise RuntimeError("Реестр операций пуст")
 

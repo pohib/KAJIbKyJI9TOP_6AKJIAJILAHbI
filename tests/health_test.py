@@ -1,8 +1,9 @@
 from __future__ import annotations
-from app.operations import apply_operation, AVAILABLE_OPERATIONS, self_test
-import pytest
+
 from fastapi.testclient import TestClient
+
 from app import operations
+from app.operations import AVAILABLE_OPERATIONS, apply_operation, self_test
 
 
 def test_root_reports_actual_operations(client: TestClient):

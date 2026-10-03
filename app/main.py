@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from fastapi import FastAPI
+
 from app.config import APP_DESCRIPTION, APP_NAME, APP_VERSION
 from app.operations import AVAILABLE_OPERATIONS
 from app.routers import calc, health

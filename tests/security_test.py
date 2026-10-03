@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from fastapi.testclient import TestClient
+
 
 def test_errors_tracebacks(client: TestClient):
     r = client.post("/calculate", json={"a": 1, "b": 0, "operation": "/"})

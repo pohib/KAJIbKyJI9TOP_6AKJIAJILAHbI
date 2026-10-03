@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException, status
+
 from app.operations import AVAILABLE_OPERATIONS, apply_operation
 from app.schemas import CalcRequest, CalcResponse
 

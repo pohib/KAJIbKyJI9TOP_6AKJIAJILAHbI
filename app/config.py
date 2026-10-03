@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import os
-from importlib.metadata import PackageNotFoundError, version as pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 
 APP_NAME = "CalcAPI"
 APP_DESCRIPTION = "КАЛЬКУЛЯТОР БАКЛАЖАНЫ"

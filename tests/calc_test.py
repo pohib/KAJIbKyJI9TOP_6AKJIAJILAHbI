@@ -1,8 +1,10 @@
 from __future__ import annotations
-import math
+
 import pytest
 from fastapi.testclient import TestClient
+
 from app.operations import AVAILABLE_OPERATIONS
+
 
 @pytest.mark.parametrize(
     "a, b, op, expected",
@@ -76,11 +78,11 @@ def test_unknown_operation(client: TestClient, bad_op):
 @pytest.mark.parametrize(
     "payload",
     [
-        {},      
-        {"a": 1},                                
+        {},
+        {"a": 1},
         {"a": "abc", "b": 2, "operation": "+"},
-        {"a": 1, "b": None, "operation": "+"}, 
-        {"a": 1, "b": 2},              
+        {"a": 1, "b": None, "operation": "+"},
+        {"a": 1, "b": 2},
     ],
 )
 

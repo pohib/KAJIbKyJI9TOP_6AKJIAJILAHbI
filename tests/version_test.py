@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import importlib
+
 import app.config
+
 
 def test_version_from_env(monkeypatch):
     monkeypatch.setenv("APP_VERSION", "9.9.9-test")
