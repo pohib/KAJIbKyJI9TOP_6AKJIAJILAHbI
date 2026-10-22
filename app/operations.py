@@ -49,7 +49,6 @@ def self_test() -> str:
         got = OPERATIONS[symbol](a, b)
         if not math.isclose(got, expected, abs_tol=1e-9):
             raise RuntimeError(
-                f"Тест не пройден для '{symbol}': "
-                f"{a} {symbol} {b} = {got}, ожидалось {expected}"
+                f"Тест не пройден для '{symbol}': {a} {symbol} {b} = {got}, ожидалось {expected}"
             )
     return "ok"
