@@ -249,6 +249,7 @@ jobs:
 
           custom_release_rules: |
             fix:patch
+            refactor:patch
             feat:minor
 
       - name: Показать созданный tag
