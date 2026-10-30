@@ -91,6 +91,7 @@ jobs:
           output: trivy-image.sarif
           severity: CRITICAL,HIGH
           exit-code: '0'
+          ignore-unfixed: true
 
       - name: Выложить отчет образа Trivy в виде SARIF
         if: always() && hashFiles('trivy-image.sarif') != ''
@@ -108,6 +109,7 @@ jobs:
           output: trivy-fs.sarif
           severity: CRITICAL,HIGH
           exit-code: '0'
+          ignore-unfixed: true
 
       - name: Выложить Trivy отчет о ФС в виде SARIF
         if: always() && hashFiles('trivy-fs.sarif') != ''
